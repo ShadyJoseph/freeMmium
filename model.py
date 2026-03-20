@@ -301,7 +301,7 @@ grid_obj = GridSearchCV(
     rf_estimator_tuned,
     parameters,
     scoring=scorer,
-    cv=PAPER_CV_FOLDS               # paper uses cv=5
+    cv=CV_FOLDS               # paper uses cv=5
 )
 grid_obj = grid_obj.fit(X_train, y_train)
 

@@ -87,7 +87,7 @@ def build_score_row(label: str, y_true, y_pred, y_proba) -> dict:
 
 
 # ==============================================================
-# STEP 1 — DATA PREPROCESSING                        [paper §Solution]
+# STEP 1 — DATA PREPROCESSING
 # ==============================================================
 print_section("STEP 1 — DATA PREPROCESSING")
 
@@ -115,66 +115,95 @@ print(f"\n  Shape after preprocessing: {df.shape}")
 
 
 # ==============================================================
-# STEP 2 — EXPLORATORY DATA ANALYSIS                 [paper Figure 1]
+# STEP 2 — EXPLORATORY DATA ANALYSIS
 # ==============================================================
 print_section("STEP 2 — EXPLORATORY DATA ANALYSIS")
 
 total = len(raw_df)
 paid = int(raw_df["status"].sum())
 free = total - paid
-avg_cr = raw_df["status"].mean() * 100
+overall_conv_rate = raw_df["status"].mean() * 100
 
 print(f"\n  Free (0): {free:,}  ({free/total*100:.1f}%)")
 print(f"  Paid (1): {paid:,}  ({paid/total*100:.1f}%)")
+print(f"  Overall conversion rate: {overall_conv_rate:.1f}%")
+
+# Each column has a human-readable label and a unit suffix for printing.
+# Units: age=years, website_visits=visits, time=seconds, page_views=pages/visit
+COL_META = {
+    "age": ("Age", "yrs"),
+    "website_visits": ("Website visits", "visits"),
+    "time_spent_on_website": ("Time on website", "sec"),
+    "page_views_per_visit": ("Page views per visit", "pages"),
+}
 
 print(f"\n  Engagement averages — free vs paid:")
-print(f"  {'Metric':<30} {'Free':>8}  {'Paid':>8}  {'Diff%':>7}")
-print("  " + "-" * 57)
-for col in ["age", "website_visits", "time_spent_on_website", "page_views_per_visit"]:
+print(f"  {'Metric':<28} {'Unit':<8} {'Free':>8}  {'Paid':>8}  {'Diff%':>7}  Signal")
+print("  " + "-" * 72)
+for col, (label, unit) in COL_META.items():
     fa = raw_df[raw_df["status"] == 0][col].mean()
     pa = raw_df[raw_df["status"] == 1][col].mean()
     diff = ((pa - fa) / fa) * 100
-    print(f"  {col:<30} {fa:>8.2f}  {pa:>8.2f}  {diff:>+7.1f}%")
+    signal = "STRONG ←" if abs(diff) > 30 else (
+        "moderate" if abs(diff) > 10 else "weak")
+    print(f"  {label:<28} {unit:<8} {fa:>8.2f}  {pa:>8.2f}  {diff:>+7.1f}%  {signal}")
 
+# Conversion rate by first interaction channel
 print(f"\n  First interaction conversion rates:")
+print(f"  {'Channel':<20} {'Conv%':>7}  {'Converted':>10}  {'Total':>7}")
+print("  " + "-" * 48)
 fi = raw_df.groupby("first_interaction")["status"].agg(["sum", "count"])
 fi["rate"] = (fi["sum"] / fi["count"] * 100).round(1)
 for cat, row in fi.iterrows():
-    print(f"  {cat:<20} {row['rate']:>5.1f}%  (n={int(row['count'])})")
+    print(f"  {cat:<20} {row['rate']:>6.1f}%  "
+          f"{int(row['sum']):>10,}  {int(row['count']):>7,}")
 
+# Conversion rate by profile completion level
 print(f"\n  Profile completion conversion rates:")
+print(f"  {'Level':<20} {'Conv%':>7}  {'Converted':>10}  {'Total':>7}")
+print("  " + "-" * 48)
 pc = raw_df.groupby("profile_completed")["status"].agg(["sum", "count"])
 pc["rate"] = (pc["sum"] / pc["count"] * 100).round(1)
 for cat, row in pc.iterrows():
-    print(f"  {cat:<20} {row['rate']:>5.1f}%  (n={int(row['count'])})")
+    print(f"  {cat:<20} {row['rate']:>6.1f}%  "
+          f"{int(row['sum']):>10,}  {int(row['count']):>7,}")
 
-# Figure 1: distribution histograms + box plots
+# Figure 1: distribution histograms + box plots (paper Figure 1)
+# Human-readable axis labels and units for each chart column
+CHART_META = {
+    "age": ("Age", "Age (years)", "#3498db"),
+    "website_visits": ("Website Visits", "Visits (count)", "#2ecc71"),
+    "time_spent_on_website": ("Time on Website", "Time (seconds)", "#e74c3c"),
+    "page_views_per_visit": ("Page Views per Visit", "Pages per visit", "#9b59b6"),
+}
+
 fig, axes = plt.subplots(2, 4, figsize=(20, 10))
 fig.suptitle("Figure 1 — Distribution and Box Plots of Different Variables",
              fontsize=14, fontweight="bold")
 
-plot_cols = ["age", "website_visits",
-             "time_spent_on_website", "page_views_per_visit"]
-colors = ["#3498db", "#2ecc71", "#e74c3c", "#9b59b6"]
+for i, (col, (title, axis_label, color)) in enumerate(CHART_META.items()):
 
-for i, (col, color) in enumerate(zip(plot_cols, colors)):
+    # Top row: histogram of the full column (all leads)
     axes[0, i].hist(raw_df[col], bins=30, color=color,
                     alpha=0.75, edgecolor="white")
-    axes[0, i].set_title(f"{col}\nDistribution", fontweight="bold", fontsize=9)
-    axes[0, i].set_xlabel(col, fontsize=8)
-    axes[0, i].set_ylabel("Count", fontsize=8)
+    axes[0, i].set_title(f"{title}\nDistribution",
+                         fontweight="bold", fontsize=9)
+    axes[0, i].set_xlabel(axis_label, fontsize=8)
+    axes[0, i].set_ylabel("Number of leads", fontsize=8)
 
+    # Bottom row: side-by-side box plots split by conversion status
+    # Two lists are passed — one per group — producing two boxes
     bp = axes[1, i].boxplot(
         [raw_df[raw_df["status"] == 0][col],
          raw_df[raw_df["status"] == 1][col]],
-        patch_artist=True,
+        patch_artist=True,               # required to fill boxes with color
         labels=["Free (0)", "Paid (1)"]
     )
-    bp["boxes"][0].set_facecolor("#e74c3c")
-    bp["boxes"][1].set_facecolor("#2ecc71")
-    axes[1, i].set_title(f"{col}\nBox Plot by Status",
+    bp["boxes"][0].set_facecolor("#e74c3c")   # free = red
+    bp["boxes"][1].set_facecolor("#2ecc71")   # paid = green
+    axes[1, i].set_title(f"{title}\nBox Plot by Status",
                          fontweight="bold", fontsize=9)
-    axes[1, i].set_ylabel(col, fontsize=8)
+    axes[1, i].set_ylabel(axis_label, fontsize=8)
 
 plt.tight_layout()
 plt.savefig("eda_charts.png", dpi=150, bbox_inches="tight")
@@ -301,7 +330,7 @@ grid_obj = GridSearchCV(
     rf_estimator_tuned,
     parameters,
     scoring=scorer,
-    cv=CV_FOLDS               # paper uses cv=5
+    cv=CV_FOLDS
 )
 grid_obj = grid_obj.fit(X_train, y_train)
 

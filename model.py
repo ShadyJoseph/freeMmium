@@ -212,7 +212,7 @@ print("\n  ✓ eda_charts.png  (Figure 1)")
 
 
 # ==============================================================
-# STEP 3 — FEATURE ENGINEERING                       [paper §Solution]
+# STEP 3 — FEATURE ENGINEERING
 # ==============================================================
 print_section("STEP 3 — FEATURE ENGINEERING")
 
@@ -232,7 +232,7 @@ print(f"\n  Total features: {df.shape[1] - 1}")
 
 
 # ==============================================================
-# STEP 4 — TRAIN / TEST SPLIT                        [paper §Solution]
+# STEP 4 — TRAIN / TEST SPLIT
 # ==============================================================
 print_section("STEP 4 — TRAIN / TEST SPLIT")
 
@@ -250,7 +250,7 @@ print(f"  Features : {X.shape[1]}")
 
 
 # ==============================================================
-# STEP 5 — BASE MODEL DEVELOPMENT                    [paper §Solution]
+# STEP 5 — BASE MODEL DEVELOPMENT
 # ==============================================================
 print_section("STEP 5 — BASE MODEL DEVELOPMENT")
 
@@ -272,20 +272,7 @@ print(f"  RF  train={accuracy_score(y_train, rf_base.predict(X_train)):.4f}  tes
 
 
 # ==============================================================
-# STEP 6 — HYPERPARAMETER TUNING                     [paper Figure 2]
-#
-# Exact replication of the paper's Figure 2 code:
-#   rf_estimator_tuned = RandomForestClassifier(
-#       criterion="entropy", random_state=7
-#   )
-#   parameters = {
-#       "n_estimators": [100, 110, 120],
-#       "max_depth": [5, 6, 7],
-#       "max_features": [0.8, 0.9, 1]
-#   }
-#   scorer = metrics.make_scorer(recall_score, pos_label=1)
-#   grid_obj = GridSearchCV(rf_estimator_tuned, parameters,
-#                           scoring=scorer, cv=5)
+# STEP 6 — HYPERPARAMETER TUNING
 # ==============================================================
 print_section("STEP 6 — HYPERPARAMETER TUNING  (Figure 2)")
 
